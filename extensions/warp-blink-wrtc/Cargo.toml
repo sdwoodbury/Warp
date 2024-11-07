@@ -19,7 +19,7 @@ bs58 = { workspace = true }
 derive_more = { workspace = true }
 futures = { workspace = true }
 rust-ipfs = { workspace = true }
-libipld = { workspace = true }
+libipld = "0.16"
 log = "0.4.17"
 mp4 = { workspace = true }
 once_cell = { workspace = true }
@@ -31,7 +31,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_cbor = { workspace = true }
 tokio = { workspace = true }
 warp.workspace = true
-webrtc = "0.6.0"
+webrtc = "0.11.0"
 rayon = "1.8"
 parking_lot.workspace = true
 

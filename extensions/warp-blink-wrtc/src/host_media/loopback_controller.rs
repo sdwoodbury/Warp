@@ -22,11 +22,9 @@ struct Data {
 }
 
 static DATA: Lazy<Mutex<Data>> = Lazy::new(|| {
-    Mutex::new(
-        Data {
-            controller: loopback::LoopbackController::new(),
-        }
-    )
+    Mutex::new(Data {
+        controller: loopback::LoopbackController::new(),
+    })
 });
 pub const AUDIO_SOURCE_ID: &str = "audio-input";
 
@@ -57,13 +55,13 @@ pub async fn create_audio_source_track(
     _ui_event_ch: broadcast::Sender<BlinkEventKind>,
     track: Arc<TrackLocalStaticRTP>,
 ) -> Result<(), Error> {
-    let mut data = DATA.lock().await;
+    let data = DATA.lock().await;
     data.controller.set_source_track(track);
     Ok(())
 }
 
 pub async fn remove_audio_source_track() -> anyhow::Result<()> {
-    let mut data = DATA.lock().await;
+    let data = DATA.lock().await;
     data.controller.remove_audio_source_track();
     Ok(())
 }

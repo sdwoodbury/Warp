@@ -31,6 +31,61 @@ struct Data {
     deafened: bool,
 }
 
+unsafe impl Send for Data {}
+
+impl Data {
+    fn create_audio_sink_track(
+        &mut self,
+        peer_id: DID,
+        ui_event_ch: broadcast::Sender<BlinkEventKind>,
+        track: Arc<TrackRemote>,
+    ) -> anyhow::Result<()> {
+        let output_device = match self.audio_output_device.as_ref() {
+            Some(d) => d,
+            None => {
+                bail!("no audio output device selected");
+            }
+        };
+
+        if self.audio_sink_controller.is_none() {
+            self.audio_sink_controller.replace(SinkTrackController::new(
+                self.audio_sink_channels,
+                ui_event_ch,
+            )?);
+        }
+
+        if let Some(controller) = self.audio_sink_controller.as_mut() {
+            controller.add_track(output_device, peer_id.clone(), track)?;
+        } else {
+            // unreachable
+            debug_assert!(false);
+        }
+
+        Ok(())
+    }
+
+    fn create_audio_source_track(
+        &mut self,
+        own_id: &DID,
+        ui_event_ch: broadcast::Sender<BlinkEventKind>,
+        track: Arc<TrackLocalStaticRTP>,
+    ) -> Result<(), Error> {
+        let input_device = match self.audio_input_device.as_ref() {
+            Some(d) => d,
+            None => return Err(Error::MicrophoneMissing),
+        };
+
+        // drop the source track, causing it to clean itself up.
+        self.audio_source_track.take();
+
+        let num_channels = self.audio_source_channels;
+        let source_track =
+            SourceTrack::new(own_id, track, input_device, num_channels, ui_event_ch)?;
+        self.audio_source_track.replace(source_track);
+        Ok(())
+    }
+}
+
 static DATA: Lazy<Mutex<Data>> = Lazy::new(|| {
     let cpal_host = cpal::platform::default_host();
     Mutex::new(Data {
@@ -84,18 +139,7 @@ pub async fn create_audio_source_track(
     track: Arc<TrackLocalStaticRTP>,
 ) -> Result<(), Error> {
     let mut data = DATA.lock().await;
-    let input_device = match data.audio_input_device.as_ref() {
-        Some(d) => d,
-        None => return Err(Error::MicrophoneMissing),
-    };
-
-    // drop the source track, causing it to clean itself up.
-    data.audio_source_track.take();
-
-    let num_channels = data.audio_source_channels;
-    let source_track = SourceTrack::new(own_id, track, input_device, num_channels, ui_event_ch)?;
-    data.audio_source_track.replace(source_track);
-    Ok(())
+    data.create_audio_source_track(own_id, ui_event_ch, track)
 }
 
 pub async fn remove_audio_source_track() -> anyhow::Result<()> {
@@ -110,29 +154,7 @@ pub async fn create_audio_sink_track(
     track: Arc<TrackRemote>,
 ) -> anyhow::Result<()> {
     let mut data = DATA.lock().await;
-
-    let output_device = match data.audio_output_device.as_ref() {
-        Some(d) => d,
-        None => {
-            bail!("no audio output device selected");
-        }
-    };
-
-    if data.audio_sink_controller.is_none() {
-        data.audio_sink_controller.replace(SinkTrackController::new(
-            data.audio_sink_channels,
-            ui_event_ch,
-        )?);
-    }
-
-    if let Some(controller) = data.audio_sink_controller.as_mut() {
-        controller.add_track(output_device, peer_id.clone(), track)?;
-    } else {
-        // unreachable
-        debug_assert!(false);
-    }
-
-    Ok(())
+    data.create_audio_sink_track(peer_id, ui_event_ch, track)
 }
 
 pub async fn change_audio_input(
@@ -209,14 +231,14 @@ pub async fn mute_self() {
 pub async fn unmute_self() {
     let mut data = DATA.lock().await;
     data.muted = false;
-    if let Some(track) = unsafe { data.audio_source_track.as_mut() } {
+    if let Some(track) = data.audio_source_track.as_mut() {
         track.unmute();
     }
 }
 
 pub async fn deafen() {
     let mut data = DATA.lock().await;
-    DATA.deafened = true;
+    data.deafened = true;
     if let Some(controller) = data.audio_sink_controller.as_mut() {
         controller.silence_call();
     }
@@ -270,7 +292,7 @@ pub async fn resume_recording() {
 }
 
 pub async fn set_peer_audio_gain(peer_id: DID, audio_multiplier: f32) {
-    let mut data = DATA.lock().await;
+    let data = DATA.lock().await;
     if let Some(controller) = data.audio_sink_controller.as_ref() {
         controller.set_audio_multiplier(peer_id, audio_multiplier);
     }

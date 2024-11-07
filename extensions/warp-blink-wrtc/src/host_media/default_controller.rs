@@ -76,6 +76,7 @@ impl Data {
         } else {
             // unreachable
             debug_assert!(false);
+            bail!("failed to add sink track");
         }
 
         Ok(())

@@ -6,6 +6,7 @@ use webrtc::{
     media::io::sample_builder::SampleBuilder,
     rtp::{self, packet::Packet, packetizer::Packetizer},
     track::track_remote::TrackRemote,
+    util::Marshal,
     util::Unmarshal,
 };
 
@@ -56,13 +57,19 @@ pub async fn run(args: Args) {
     let mut loudness = None;
 
     loop {
-        let (siz, _attr) = tokio::select! {
+        let siz = tokio::select! {
             _ = should_quit.notified() => {
                 log::debug!("loopback receiver task terminated via notify");
                 break;
             },
             opt = track.read(&mut b) => match opt {
-                Ok(x) => x,
+                Ok((rtp_packet, _)) => match rtp_packet.marshal_to(&mut b){
+                    Ok(x) => x,
+                    Err(e) => {
+                        log::error!("loopback receiver failed ot unmarshal rtp packet: {e}");
+                        break;
+                    }
+                },
                 Err(e) => {
                     log::error!("loopback receiver encountered error when reading from track: {e}");
                     break;
@@ -92,7 +99,7 @@ pub async fn run(args: Args) {
 
         sample_builder.push(rtp_packet);
         while let Some(sample) = sample_builder.pop() {
-            let mut packets = match packetizer.packetize(&sample.data, 480).await {
+            let mut packets = match packetizer.packetize(&sample.data, 480) {
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("failed to packetize: {e}");

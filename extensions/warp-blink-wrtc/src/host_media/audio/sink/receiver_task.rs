@@ -15,6 +15,7 @@ use warp::{blink::BlinkEventKind, crypto::DID};
 use webrtc::{
     media::{io::sample_builder::SampleBuilder, Sample},
     track::track_remote::TrackRemote,
+    util::Marshal,
     util::Unmarshal,
 };
 
@@ -62,9 +63,15 @@ pub async fn run(args: Args) {
     let automute_tx = automute::AUDIO_CMD_CH.tx.clone();
 
     loop {
-        let (siz, _attr) = tokio::select! {
+        let siz = tokio::select! {
             x = track.read(&mut b) => match x {
-                Ok(y) => y,
+                Ok((rtp_packet, _)) => match rtp_packet.marshal_to(&mut b){
+                    Ok(x) => x,
+                    Err(e) => {
+                        log::error!("audio receiver failed ot unmarshal rtp packet: {e}");
+                        break;
+                    }
+                },
                 Err(e) => {
                     log::debug!("audio receiver task for peer {peer_id} terminated by error: {e}");
                     break;

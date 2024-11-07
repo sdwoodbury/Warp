@@ -94,7 +94,7 @@ pub async fn run(args: Args) {
             let _ = ui_event_ch.send(BlinkEventKind::SelfSpeaking);
         }
 
-        let packets = match packetizer.packetize(&frame.bytes, num_samples as _).await {
+        let packets = match packetizer.packetize(&frame.bytes, num_samples as _) {
             Ok(r) => r,
             Err(e) => {
                 log::error!("failed to packetize for opus: {}", e);

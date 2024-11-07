@@ -19,6 +19,23 @@ use super::audio::utils::AudioDeviceConfigImpl;
 use super::mp4_logger;
 use super::mp4_logger::Mp4LoggerConfig;
 
+static DATA: Lazy<Mutex<Data>> = Lazy::new(|| {
+    let cpal_host = cpal::platform::default_host();
+    Mutex::new(Data {
+        audio_input_device: cpal_host.default_input_device(),
+        audio_output_device: cpal_host.default_output_device(),
+        audio_source_channels: 1,
+        audio_sink_channels: 1,
+        audio_source_track: None,
+        audio_sink_controller: None,
+        recording: false,
+        muted: false,
+        deafened: false,
+    })
+});
+
+pub const AUDIO_SOURCE_ID: &str = "audio-input";
+
 struct Data {
     audio_input_device: Option<cpal::Device>,
     audio_output_device: Option<cpal::Device>,
@@ -85,23 +102,6 @@ impl Data {
         Ok(())
     }
 }
-
-static DATA: Lazy<Mutex<Data>> = Lazy::new(|| {
-    let cpal_host = cpal::platform::default_host();
-    Mutex::new(Data {
-        audio_input_device: cpal_host.default_input_device(),
-        audio_output_device: cpal_host.default_output_device(),
-        audio_source_channels: 1,
-        audio_sink_channels: 1,
-        audio_source_track: None,
-        audio_sink_controller: None,
-        recording: false,
-        muted: false,
-        deafened: false,
-    })
-});
-
-pub const AUDIO_SOURCE_ID: &str = "audio-input";
 
 pub async fn get_input_device_name() -> Option<String> {
     let data = DATA.lock().await;

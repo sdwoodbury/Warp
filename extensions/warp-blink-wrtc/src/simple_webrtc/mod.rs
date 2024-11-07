@@ -39,12 +39,10 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 pub use webrtc::rtp_transceiver::rtp_codec::RTCRtpCodecCapability;
 use webrtc::rtp_transceiver::rtp_codec::{RTCRtpCodecParameters, RTPCodecType};
-use webrtc::rtp_transceiver::rtp_receiver::RTCRtpReceiver;
 use webrtc::rtp_transceiver::rtp_sender::RTCRtpSender;
 use webrtc::rtp_transceiver::rtp_transceiver_direction::RTCRtpTransceiverDirection;
 use webrtc::sdp::extmap::AUDIO_LEVEL_URI;
 use webrtc::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
-use webrtc::track::track_remote::TrackRemote;
 
 use self::events::{EmittedEvents, WebRtcEventStream};
 
@@ -470,19 +468,15 @@ impl Controller {
         // the next 2 lines is some nonsense to satisfy the (otherwise excellent) rust compiler
         let tx = self.event_ch.clone();
         let dest = peer_id.clone();
-        peer.connection.on_track(Box::new(
-            move |track: Option<Arc<TrackRemote>>, _receiver: Option<Arc<RTCRtpReceiver>>| {
-                if let Some(track) = track {
-                    if let Err(e) = tx.send(EmittedEvents::TrackAdded {
-                        peer: dest.clone(),
-                        track,
-                    }) {
-                        log::error!("failed to send track added event for peer {}: {}", &dest, e);
-                    }
-                }
-                Box::pin(futures::future::ready(()))
-            },
-        ));
+        peer.connection.on_track(Box::new(move |track, _, _| {
+            if let Err(e) = tx.send(EmittedEvents::TrackAdded {
+                peer: dest.clone(),
+                track,
+            }) {
+                log::error!("failed to send track added event for peer {}: {}", &dest, e);
+            }
+            Box::pin(futures::future::ready(()))
+        }));
 
         //let event_ch = self.event_ch.clone();
         let tof_ch = self.tof.get_ch();

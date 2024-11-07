@@ -1,7 +1,7 @@
 # warp-blink-wrtc
 
 ## Actor Diagram
-![Actor Diagram](docs/actor-diagramj.jpg)
+![Actor Diagram](docs/actor-diagram.jpg)
 
 ## Component Diagram
 ![Component Diagram](docs/component-diagram.jpg)

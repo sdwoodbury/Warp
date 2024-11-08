@@ -1,12 +1,5 @@
 # warp-blink-wrtc
 
-## Actor Diagram
-![Actor Diagram](docs/actor-diagram.jpg)
-
-## Component Diagram
-![Component Diagram](docs/component-diagram.jpg)
-
-
 ## Introduction
 This extension is an implementation of the [Blink trait](https://github.com/Satellite-im/Warp/blob/main/warp/src/blink/mod.rs), providing teleconferencing capabilities. There main modules are:
 - [simple-webrtc](https://github.com/Satellite-im/Warp/blob/main/extensions/warp-blink-wrtc/src/simple_webrtc/mod.rs): built on top of the [webrtc-rs](https://github.com/webrtc-rs/webrtc) crate, manages multiple concurrent peer connections and their associated media streams.
@@ -22,20 +15,25 @@ This extension is an implementation of the [Blink trait](https://github.com/Sate
     - mute/unmute self
     - record call
 
-## blink-impl
+## Blink Overview
+![Actor Diagram](docs/actor-diagram.jpg)
 
-### Background
-Peers are discovered using the IPFS network. WebRTC signaling is performed using gossip (exposed by the IPFS crate).
+## Blink Components
+![Component Diagram](docs/component-diagram.jpg)
+
+## Blink Controller Thread
+
+![blink-impl's Blink Controller](docs/BlinkController.jpg)
+
+## Gossip Listener Thread
+
+![blink-impl's Gossip Listener](docs/GossipListener.jpg)
+
+## WebRTC Controller
+
+![webrtc controller](docs/WebRTC.jpg)
+
+## Media Controller
+![media controller](docs/MediaController.jpg)
 
 
-### Overview
-The core of the `blink-impl` module is a `BlinkController` which manages external commands and signals from WebRTC and gossipsub.
-Diagrams are provided for the more complicated modules.
-
-#### BlinkController Thread
-
-![blink-impl's Blink Controller](docs/Blink%20Controller.drawio.png)
-
-#### GossipListener Thread
-
-![blink-impl's Gossip Listener](docs/Gossip%20Listener.drawio.png)

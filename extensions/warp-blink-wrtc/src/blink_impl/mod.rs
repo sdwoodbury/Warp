@@ -39,11 +39,7 @@ pub struct BlinkImpl {
     // the DID generated from Multipass. has been cloned. doesn't contain the private key anymore.
     own_id: Arc<parking_lot::RwLock<Option<DID>>>,
     ui_event_ch: broadcast::Sender<BlinkEventKind>,
-
-    gossipsub_listener: GossipSubListener,
-    gossipsub_sender: GossipSubSender,
     blink_controller: blink_controller::BlinkController,
-
     drop_handler: Arc<DropHandler>,
 }
 
@@ -77,7 +73,7 @@ impl BlinkImpl {
         let blink_controller = BlinkController::new(blink_controller::Args {
             webrtc_controller,
             webrtc_event_stream,
-            gossipsub_sender: gossipsub_sender.clone(),
+            gossipsub_sender: gossipsub_sender,
             gossipsub_listener: gossipsub_listener.clone(),
             signal_rx: gossipsub_rx,
             ui_event_ch: ui_event_ch.clone(),
@@ -86,14 +82,11 @@ impl BlinkImpl {
         let blink_impl = Self {
             own_id: Arc::new(parking_lot::RwLock::new(None)),
             ui_event_ch: ui_event_ch.clone(),
-            gossipsub_sender,
-            gossipsub_listener,
             blink_controller,
             drop_handler: Arc::new(DropHandler {}),
         };
 
         let own_id = blink_impl.own_id.clone();
-        let gossipsub_listener = blink_impl.gossipsub_listener.clone();
 
         tokio::spawn(async move {
             let f = async move {

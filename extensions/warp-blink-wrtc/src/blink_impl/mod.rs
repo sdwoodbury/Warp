@@ -57,7 +57,7 @@ impl BlinkImpl {
     pub async fn new<M: MultiPass + SingleHandle + 'static>(
         account: M,
     ) -> anyhow::Result<Box<Self>> {
-        log::trace!("initializing WebRTC");
+        log::trace!("initializing Blink");
 
         let (ui_event_ch, _rx) = broadcast::channel(1024);
         let (gossipsub_tx, gossipsub_rx) = mpsc::unbounded_channel();
